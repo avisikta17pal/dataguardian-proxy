@@ -1,0 +1,80 @@
+[
+  {
+    "id": "audit-1",
+    "type": "dataset_created",
+    "actor": "citizen",
+    "message": "Dataset 'Personal Fitness Data' uploaded and processed",
+    "createdAt": "2024-01-15T10:30:00Z",
+    "meta": {
+      "datasetId": "dataset-1",
+      "rows": 365,
+      "size": 45600
+    },
+    "severity": "info"
+  },
+  {
+    "id": "audit-2", 
+    "type": "rule_created",
+    "actor": "citizen",
+    "message": "Privacy rule 'Daily Activity Summary' created for fitness data",
+    "createdAt": "2024-01-16T09:00:00Z",
+    "meta": {
+      "ruleId": "rule-1",
+      "datasetId": "dataset-1",
+      "obfuscationLevel": "medium"
+    },
+    "severity": "info"
+  },
+  {
+    "id": "audit-3",
+    "type": "stream_created", 
+    "actor": "citizen",
+    "message": "Data stream 'Fitness API for HealthApp' created with 30-day expiry",
+    "createdAt": "2024-01-16T10:30:00Z",
+    "meta": {
+      "streamId": "stream-1",
+      "ruleId": "rule-1", 
+      "expiryDays": 30
+    },
+    "severity": "info"
+  },
+  {
+    "id": "audit-4",
+    "type": "token_created",
+    "actor": "citizen", 
+    "message": "Access token generated for HealthApp Integration",
+    "createdAt": "2024-01-16T10:30:00Z",
+    "meta": {
+      "tokenId": "token-1",
+      "streamId": "stream-1",
+      "scope": ["read", "aggregate"]
+    },
+    "severity": "info"
+  },
+  {
+    "id": "audit-5",
+    "type": "stream_accessed",
+    "actor": "app",
+    "message": "Stream accessed by HealthApp Integration (47 total accesses)",
+    "createdAt": "2024-01-22T08:15:00Z",
+    "meta": {
+      "streamId": "stream-1",
+      "tokenId": "token-1",
+      "accessCount": 47,
+      "ipAddress": "192.168.1.100"
+    },
+    "severity": "info"
+  },
+  {
+    "id": "audit-6",
+    "type": "stream_accessed",
+    "actor": "app",
+    "message": "Automatic stream expiry for 'Expired Demo Stream'",
+    "createdAt": "2024-01-20T10:30:00Z",
+    "meta": {
+      "streamId": "stream-3",
+      "reason": "ttl_expired"
+    },
+    "severity": "warning"
+  }
+]

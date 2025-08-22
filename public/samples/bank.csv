@@ -1,0 +1,31 @@
+date,merchant,category,amount,account
+2024-01-01,Starbucks,Food & Dining,-4.85,Checking
+2024-01-01,Salary Deposit,Income,3250.00,Checking
+2024-01-02,Amazon,Shopping,-89.99,Credit Card
+2024-01-02,Uber,Transportation,-12.45,Credit Card
+2024-01-03,Whole Foods,Groceries,-156.78,Checking
+2024-01-03,Netflix,Entertainment,-15.99,Credit Card
+2024-01-04,Shell Gas Station,Transportation,-45.20,Credit Card
+2024-01-04,Chipotle,Food & Dining,-11.67,Checking
+2024-01-05,Target,Shopping,-67.34,Credit Card
+2024-01-05,Spotify,Entertainment,-9.99,Credit Card
+2024-01-06,CVS Pharmacy,Health,-23.45,Checking
+2024-01-06,McDonald's,Food & Dining,-8.99,Credit Card
+2024-01-07,Rent Payment,Housing,-1200.00,Checking
+2024-01-07,Electric Bill,Utilities,-89.45,Checking
+2024-01-08,Gym Membership,Health,-29.99,Credit Card
+2024-01-08,Starbucks,Food & Dining,-5.25,Credit Card
+2024-01-09,Amazon,Shopping,-34.99,Credit Card
+2024-01-09,Uber Eats,Food & Dining,-18.76,Credit Card
+2024-01-10,Kroger,Groceries,-123.45,Checking
+2024-01-10,Internet Bill,Utilities,-65.00,Checking
+2024-01-11,Best Buy,Electronics,-299.99,Credit Card
+2024-01-11,Subway,Food & Dining,-9.50,Credit Card
+2024-01-12,Gas Station,Transportation,-38.90,Credit Card
+2024-01-12,Hulu,Entertainment,-12.99,Credit Card
+2024-01-13,Target,Shopping,-45.67,Credit Card
+2024-01-13,Coffee Shop,Food & Dining,-6.75,Checking
+2024-01-14,Amazon,Shopping,-76.54,Credit Card
+2024-01-14,Uber,Transportation,-15.30,Credit Card
+2024-01-15,Salary Deposit,Income,3250.00,Checking
+2024-01-15,Grocery Store,Groceries,-189.23,Checking

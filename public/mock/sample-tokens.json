@@ -1,0 +1,41 @@
+[
+  {
+    "id": "token-1",
+    "streamId": "stream-1",
+    "token": "dg_live_sk_abc123def456ghi789jkl012mno345pqr678stu901vwx234yz",
+    "scope": ["read", "aggregate"],
+    "expiresAt": "2024-02-15T10:30:00Z",
+    "oneTime": false,
+    "createdAt": "2024-01-16T10:30:00Z",
+    "revoked": false,
+    "name": "HealthApp Integration",
+    "accessCount": 47,
+    "lastUsed": "2024-01-22T08:15:00Z"
+  },
+  {
+    "id": "token-2",
+    "streamId": "stream-2",
+    "token": "dg_live_sk_def456ghi789jkl012mno345pqr678stu901vwx234yz567abc",
+    "scope": ["read"],
+    "expiresAt": "2024-02-20T14:15:00Z", 
+    "oneTime": false,
+    "createdAt": "2024-01-21T14:15:00Z",
+    "revoked": false,
+    "name": "Budget Tracker",
+    "accessCount": 12,
+    "lastUsed": "2024-01-22T16:45:00Z"
+  },
+  {
+    "id": "token-3",
+    "streamId": "stream-1",
+    "token": "dg_test_sk_ghi789jkl012mno345pqr678stu901vwx234yz567abc123def",
+    "scope": ["read"],
+    "expiresAt": "2024-01-25T16:00:00Z",
+    "oneTime": true,
+    "createdAt": "2024-01-22T16:00:00Z",
+    "revoked": false,
+    "name": "One-time Demo Access",
+    "accessCount": 0,
+    "lastUsed": null
+  }
+]

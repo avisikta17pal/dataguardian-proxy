@@ -1,0 +1,33 @@
+[
+  {
+    "id": "dataset-1",
+    "name": "Personal Fitness Data",
+    "rows": 365,
+    "schema": [
+      {"name": "timestamp", "type": "date", "pii": false, "nullable": false, "unique": true},
+      {"name": "steps", "type": "number", "pii": false, "nullable": false, "unique": false},
+      {"name": "heart_rate", "type": "number", "pii": false, "nullable": true, "unique": false},
+      {"name": "sleep_minutes", "type": "number", "pii": false, "nullable": true, "unique": false}
+    ],
+    "sha256": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456",
+    "createdAt": "2024-01-15T10:30:00Z",
+    "size": 45600,
+    "source": "fitness_tracker.csv"
+  },
+  {
+    "id": "dataset-2", 
+    "name": "Banking Transactions",
+    "rows": 1250,
+    "schema": [
+      {"name": "date", "type": "date", "pii": false, "nullable": false, "unique": false},
+      {"name": "merchant", "type": "string", "pii": false, "nullable": false, "unique": false},
+      {"name": "category", "type": "string", "pii": false, "nullable": false, "unique": false},
+      {"name": "amount", "type": "number", "pii": false, "nullable": false, "unique": false},
+      {"name": "account", "type": "string", "pii": true, "nullable": false, "unique": false}
+    ],
+    "sha256": "b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef1234567a",
+    "createdAt": "2024-01-20T14:15:00Z",
+    "size": 120000,
+    "source": "bank_export.csv"
+  }
+]

@@ -1,0 +1,46 @@
+[
+  {
+    "id": "rule-1",
+    "name": "Daily Activity Summary",
+    "datasetId": "dataset-1",
+    "fields": ["timestamp", "steps", "heart_rate"],
+    "filters": [
+      {"field": "timestamp", "op": "rangeDate", "value": "2024-01-01", "value2": "2024-01-31"}
+    ],
+    "aggregations": [
+      {"field": "steps", "op": "sum", "alias": "total_steps"},
+      {"field": "heart_rate", "op": "avg", "alias": "avg_heart_rate"}
+    ],
+    "obfuscation": {
+      "jitter": 5,
+      "rounding": 1,
+      "dropPII": true
+    },
+    "ttlMinutes": 1440,
+    "description": "Aggregated daily fitness metrics with privacy protection",
+    "tags": ["fitness", "daily", "privacy"],
+    "createdAt": "2024-01-16T09:00:00Z"
+  },
+  {
+    "id": "rule-2",
+    "name": "Spending Categories",
+    "datasetId": "dataset-2", 
+    "fields": ["date", "category", "amount"],
+    "filters": [
+      {"field": "amount", "op": "gte", "value": 10}
+    ],
+    "aggregations": [
+      {"field": "amount", "op": "sum", "alias": "category_total"},
+      {"field": "amount", "op": "count", "alias": "transaction_count"}
+    ],
+    "obfuscation": {
+      "bucket": 50,
+      "dropPII": true,
+      "kAnonymity": 3
+    },
+    "ttlMinutes": 2880,
+    "description": "Spending analysis by category with account details removed",
+    "tags": ["finance", "spending", "categories"],
+    "createdAt": "2024-01-21T11:30:00Z"
+  }
+]
