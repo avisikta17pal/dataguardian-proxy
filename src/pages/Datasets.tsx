@@ -231,7 +231,7 @@ export default function Datasets() {
                           <Eye className="h-4 w-4" />
                         </Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-4xl">
+                      <DialogContent className="max-w-4xl max-h-[85vh] overflow-y-auto">
                         <DialogHeader>
                           <DialogTitle>Dataset Details: {(selectedDataset ?? dataset).name}</DialogTitle>
                           <DialogDescription>
@@ -262,6 +262,7 @@ export default function Datasets() {
                           
                           <div>
                             <Label>Schema</Label>
+                            <div className="mt-2 max-h-[50vh] overflow-auto rounded-md border border-border/50">
                             <Table>
                               <TableHeader>
                                 <TableRow>
@@ -294,6 +295,7 @@ export default function Datasets() {
                                 ))}
                               </TableBody>
                             </Table>
+                            </div>
                           </div>
                         </div>
                       </DialogContent>
