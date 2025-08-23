@@ -16,6 +16,7 @@ from ..services.data_processing import (
     apply_aggregations,
     apply_obfuscation,
     select_fields,
+    generate_synthetic,
 )
 from ..services.tokens import validate_stream_token
 
@@ -104,6 +105,10 @@ async def get_stream_data(stream_id: int, token: str = Query(...), db: Session =
     if rule and rule.obfuscation:
         df = apply_obfuscation(df, rule.obfuscation)
 
+    # Optional synthetic generation mode (if configured on rule.obfuscation)
+    if rule and rule.obfuscation and rule.obfuscation.get("synthetic"):
+        df = generate_synthetic(df, rule.obfuscation.get("synthetic"))
+
     # Limit preview to max 50 rows
     df_preview = df.head(50)
 
@@ -179,6 +184,9 @@ async def export_stream_data(
         df = apply_aggregations(df, rule.aggregations)
     if rule and rule.obfuscation:
         df = apply_obfuscation(df, rule.obfuscation)
+
+    if rule and rule.obfuscation and rule.obfuscation.get("synthetic"):
+        df = generate_synthetic(df, rule.obfuscation.get("synthetic"))
 
     # Audit logging for export
     audit = Audit(

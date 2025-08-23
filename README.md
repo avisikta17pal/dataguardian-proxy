@@ -18,12 +18,14 @@ Individuals are repeatedly asked to share raw personal data with apps and servic
 
 ## ✨ Key Features
 - **Upload & Inspect Datasets**: Drag-and-drop CSVs; schema inference, basic PII detection, SHA-256 dataset fingerprinting
-- **Privacy Rules**: Select fields, add filters/aggregations, and obfuscation controls (jitter, rounding, k-anonymity, noise)
-- **Synthetic/Curated Streams**: Generate purpose-built, time-limited data streams
+- **Privacy Rules**: Select fields, add filters/aggregations, and obfuscation controls (jitter, rounding, k-anonymity)
+- **Advanced Privacy (new)**: `dropPII` supports boolean or list; optional `dpNoise` (Laplace) and a lightweight `synthetic` mode for distribution-preserving generation
+- **Time-Limited Streams**: Generate purpose-built, expiring streams, enforced by tokens and stream status
 - **Scoped Tokens**: Create revocable tokens (one-time or expiring) for controlled access
 - **Auditing & Receipts**: End-to-end audit trail and printable consent receipts (HTML/PDF)
+- **Auto-Cleanup (new)**: Background task to auto-expire streams, auto-revoke tokens, and purge unused dataset files; manual `POST /audit/maintenance/cleanup` endpoint
 - **Demo Mode**: Fully functional demo using local storage and mock data—no backend required
-- **Dark UI + Guided UX**: Modern, accessible UI built with shadcn/ui, Tailwind, and Radix
+- **Modern UI**: shadcn/ui + Tailwind + Radix with guided UX
 
 
 ## 🧰 Tech Stack
@@ -40,14 +42,16 @@ Individuals are repeatedly asked to share raw personal data with apps and servic
   - API mode targets the FastAPI backend via a configurable base URL
 - **API Server** (FastAPI)
   - Endpoints: `/datasets`, `/rules`, `/streams`, `/tokens`, `/audit`
-  - SQLite via SQLAlchemy, simple data dir management
-  - CORS enabled for local development
+  - Privacy pipeline: filters → field selection → aggregations → obfuscation → optional synthetic generation
+  - Token validation and stream expiry enforcement
+  - Background cleanup task + manual maintenance endpoint
 
 High-level flow:
-1) User uploads dataset → schema inferred + PII hints → dataset hash computed
-2) User defines privacy rule → fields, filters, aggregations, obfuscation
-3) User creates stream → optional token generation → share tokenized access
-4) App accesses stream via token → audits recorded → optional consent receipt generated
+1) Upload dataset → schema inferred + PII hints → dataset hash computed
+2) Define privacy rule → fields, filters, aggregations, obfuscation (+dpNoise/synthetic optional)
+3) Create stream → optional token generation → share tokenized access
+4) App accesses stream via token → audits recorded → optional consent receipt
+5) Background cleanup auto-expires streams/tokens and purges unused dataset files
 
 
 ## 📂 Repository Structure
@@ -57,12 +61,12 @@ backend/
     core/            # DB engine (SQLite), config, data dir
     models/          # SQLAlchemy models: Dataset, Rule, Stream, Token, Audit
     routers/         # FastAPI routers for datasets, rules, streams, tokens, audit
-    schemas/         # Pydantic schemas (if present)
-    services/        # Business logic (if present)
-    utils/           # Utilities (if present)
-    main.py          # FastAPI app, CORS, router registration
-  requirements.txt   # Backend dependencies
-  README.md          # Backend-specific run instructions
+    schemas/         # Pydantic schemas
+    services/        # data_processing (privacy), tokens, cleanup (auto-maintenance)
+    utils/           # receipts
+    main.py          # app, CORS, router registration, background cleanup
+  requirements.txt
+  README.md
 src/
   components/        # Layout, sidebar, topbar, UI primitives
   pages/             # Dashboard, Datasets, Rules, Streams, Tokens, Audit, Settings
@@ -71,7 +75,7 @@ src/
   types.ts           # Shared TypeScript types
 public/
   samples/           # Sample CSVs (e.g., fitness.csv, bank.csv)
-  mock/              # Mock JSON for demo mode (datasets, rules, streams, tokens, audit)
+  mock/              # Mock JSON for demo mode
 index.html
 vite.config.ts
 package.json
@@ -82,57 +86,65 @@ package.json
 
 ### Prerequisites
 - Node.js 18+
-- Python 3.11+ (only if running backend)
+- Python 3.11+ (backend)
 
 ### Frontend (Demo Mode — no backend required)
 ```
-# from repo root
 npm install
 npm run dev
 ```
 - App runs at `http://localhost:8080`
 - Demo mode is enabled by default. Toggle under Settings → Demo Mode.
-- Sample datasets available under `public/samples`.
+- Sample datasets under `public/samples`.
 
-### Backend (Optional API Mode)
+### Backend (API Mode)
 ```
-# in a separate terminal
 cd backend
 pip install --break-system-packages -r requirements.txt
 uvicorn app.main:app --reload --port 8001 --app-dir app
 ```
 - API runs at `http://localhost:8001`
-- CORS default allows `http://localhost:3000` (adjust as needed in `backend/app/main.py`)
+- CORS default allows `http://localhost:3000` (adjust in `backend/app/main.py`)
 
 ### Switch Frontend to API Mode
-- Go to Settings page in the app
-- Disable “Demo Mode” and set “API Base URL” (if exposed in UI) to your backend URL (e.g., `http://localhost:8001`)
+- In the app Settings
+- Disable “Demo Mode” and set “API Base URL” to your backend URL (e.g., `http://localhost:8001`)
 
 
-## 🧪 Demo Flow (What to Show Judges)
-1. **Login** (any credentials in demo mode)
-2. **Datasets** → Upload `public/samples/fitness.csv` → observe schema + PII hints + SHA-256
-3. **Rules** → Create rule with field selection, add obfuscation (e.g., drop PII + jitter)
-4. **Streams** → Create new stream from dataset + rule, set expiry → auto-generate token
-5. **Tokens** → View token details; note revoke and expiry options
-6. **Audit** → Show recent events; explain consent receipts generation in backend
-7. Optional: **Backend** → Hit `GET /streams/{id}/data?token=...` and `GET /streams/{id}/export?format=csv|json&token=...`
+## 🧪 Demo Script (What to Show Judges)
+1. Login (any credentials in demo mode)
+2. Datasets → Upload `public/samples/fitness.csv` or your `dgp_synth_10000.csv` → note schema, PII hints, SHA-256
+3. Rules → Create rule:
+   - Fields: only necessary columns
+   - Obfuscation: `dropPII=true`, `rounding=10`, `jitter={percent:5}`
+   - Optional advanced: `dpNoise={scale:1.0}` or `synthetic={rows:500, shuffle:true}`
+4. Streams → Create stream from dataset + rule, set expiry (e.g., 24h) → generate token
+5. Tokens → Show token, revoke it → try to access and show it fails
+6. Audit → Show events; then generate a consent receipt (HTML/PDF)
+7. Cleanup → Call `POST /audit/maintenance/cleanup` (or wait for background task) → show expired streams/tokens no longer accessible
 
 
-## 📡 API Overview (Backend)
-Key endpoints (see `backend/README.md` for full details):
+## 📡 API Quick Reference
 - `POST /datasets/`
 - `POST /rules/`, `GET /rules/`
-- `POST /streams/`, `GET /streams/`, `GET /streams/{id}/data`, `GET /streams/{id}/export`
+- `POST /streams/`, `GET /streams/`, `GET /streams/{id}/data?token=...`, `GET /streams/{id}/export?format=csv|json&token=...`
 - `POST /tokens/`, `GET /tokens/`, `POST /tokens/{id}/revoke`
-- `GET /audit/`, `GET /audit/{id}/receipt?format=html|pdf`
+- `GET /audit/`, `GET /audit/{stream_id}/receipt?format=html|pdf`
+- (new) `POST /audit/maintenance/cleanup`
+
+
+## ✅ Validation & Checks
+- Token/stream expiry: Verify 401 after expiry or revocation
+- Privacy: Confirm dropped PII columns and obfuscation effects in preview/export
+- Synthetic: Enable `synthetic` in rule and confirm rows are generated and unlinkable
+- Cleanup: Check audit events `stream_expired`, `token_revoked`, `dataset_purged`
 
 
 ## 🌍 Impact
 - **Privacy by Design**: Minimum necessary data for a declared purpose
 - **User Agency**: Time-limited, revocable, auditable access tokens
-- **Developer Friendly**: Simple API, clear contracts, consent receipts
-- **Scalable Pattern**: Extendable to health, finance, education datasets
+- **Trustworthy AI**: Transparent, revocable sharing with receipts
+- **Infra-level Innovation**: Citizen-first “permission-by-proxy” architecture
 
 
 ## 📝 Hackathon Details

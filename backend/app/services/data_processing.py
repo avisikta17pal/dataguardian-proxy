@@ -111,10 +111,17 @@ def apply_obfuscation(df: pd.DataFrame, obfuscation: Optional[Dict[str, Any]]) -
         return df
     result = df.copy()
 
-    # Drop PII columns
+    # Drop PII columns (boolean or list support)
     pii_cols = obfuscation.get("dropPII")
     if pii_cols:
-        drop_cols = [c for c in pii_cols if c in result.columns]
+        if isinstance(pii_cols, bool):
+            # heuristic: common PII column names
+            candidates = [
+                "full_name","name","email","phone","address","ssn","date_of_birth","dob","account_id","ip_address"
+            ]
+            drop_cols = [c for c in candidates if c in result.columns]
+        else:
+            drop_cols = [c for c in pii_cols if c in result.columns]
         if drop_cols:
             result = result.drop(columns=drop_cols)
 
@@ -151,6 +158,17 @@ def apply_obfuscation(df: pd.DataFrame, obfuscation: Optional[Dict[str, Any]]) -
                 noise = (np.random.rand(len(result)) * 2 - 1) * percent
                 result[col] = result[col] * (1.0 + noise)
 
+    # Differential-privacy-like noise (Laplace)
+    dp = obfuscation.get("dpNoise")
+    if dp:
+        # dpNoise: {"scale": 1.0, "fields":[..]}
+        scale = float(dp.get("scale", 1.0))
+        fields = dp.get("fields") or result.select_dtypes(include=[np.number]).columns.tolist()
+        for col in fields:
+            if col in result.columns:
+                noise = np.random.laplace(loc=0.0, scale=scale, size=len(result))
+                result[col] = result[col].astype(float) + noise
+
     # K-anonymity
     kconf = obfuscation.get("kAnonymity")
     if kconf:
@@ -166,6 +184,23 @@ def apply_obfuscation(df: pd.DataFrame, obfuscation: Optional[Dict[str, Any]]) -
                 result.loc[mask_small.any(axis=1), :] = "*"
 
     return result
+
+
+def generate_synthetic(df: pd.DataFrame, config: Optional[Dict[str, Any]]) -> pd.DataFrame:
+    """Simple synthetic generator by resampling and per-column shuffling.
+    config: {"rows": int, "shuffle": bool}
+    """
+    if not config:
+        return df
+    rows = int(config.get("rows", len(df)))
+    shuffled = df.sample(frac=1.0, replace=True, random_state=None)
+    # Optional per-column shuffle to break row-wise linkage
+    if config.get("shuffle", True):
+        for col in shuffled.columns:
+            shuffled[col] = shuffled[col].sample(frac=1.0, replace=False).reset_index(drop=True)
+    # Repeat to reach desired row count
+    out = pd.concat([shuffled] * (rows // len(shuffled) + 1), ignore_index=True).iloc[:rows]
+    return out
 
 
 def select_fields(df: pd.DataFrame, fields: Optional[List[str]]) -> pd.DataFrame:

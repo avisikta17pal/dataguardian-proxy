@@ -9,6 +9,7 @@ from ..core.db import get_db
 from ..models.models import Audit, Stream, Dataset, Rule, Token
 from ..schemas.schemas import AuditRead
 from ..utils.receipts import render_receipt_html, generate_receipt_pdf
+from ..services.cleanup import cleanup_expired
 
 router = APIRouter()
 
@@ -68,3 +69,9 @@ async def consent_receipt(
         )
 
     return HTMLResponse(content=html)
+
+
+@router.post("/maintenance/cleanup")
+async def force_cleanup(db: Session = Depends(get_db)):
+    result = cleanup_expired(db)
+    return result
