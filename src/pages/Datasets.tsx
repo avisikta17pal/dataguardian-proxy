@@ -238,7 +238,7 @@ export default function Datasets() {
                             Schema and metadata information
                           </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-4">
+                        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
                               <Label>Rows</Label>
