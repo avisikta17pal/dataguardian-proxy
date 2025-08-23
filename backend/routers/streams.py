@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 from db import get_db
 import models, schemas
-from utils import log_audit_event
+from utils import log_audit_event, load_dataset_df, apply_rule_filters, apply_rule_aggregations, apply_rule_obfuscation, from_json_string
 
 router = APIRouter(prefix="/streams", tags=["streams"])
 
@@ -64,16 +64,52 @@ def create_stream(payload: schemas.StreamCreate, db: Session = Depends(get_db)):
 
 @router.get("/{stream_id}/data")
 def preview_stream_data(stream_id: int, db: Session = Depends(get_db)):
-	# Stub: return fake JSON table
 	stream = db.query(models.Stream).filter(models.Stream.id == stream_id).first()
 	if not stream:
 		raise HTTPException(status_code=404, detail="Stream not found")
+	# Load rule
+	rule = db.query(models.Rule).filter(models.Rule.id == stream.ruleId).first()
+	if not rule:
+		raise HTTPException(status_code=404, detail="Rule not found for stream")
 
-	log_audit_event(db, event_type="stream.preview", actor="app", message=f"Preview requested for stream {stream_id}")
+	# Load dataset CSV
+	try:
+		df = load_dataset_df(stream.datasetId)
+	except FileNotFoundError:
+		raise HTTPException(status_code=404, detail="Dataset file not found")
+	except Exception as e:
+		raise HTTPException(status_code=500, detail=str(e))
 
-	fake_rows = [
-		{"id": 1, "name": "Alice", "age": 34},
-		{"id": 2, "name": "Bob", "age": 29},
-		{"id": 3, "name": "Charlie", "age": 41},
-	]
-	return {"columns": ["id", "name", "age"], "rows": fake_rows}
+	# Keep only selected fields if provided
+	fields = from_json_string(rule.fields) if rule.fields else None
+	if isinstance(fields, list) and fields:
+		keep_cols = [c for c in fields if c in df.columns]
+		if keep_cols:
+			df = df[keep_cols]
+
+	# Apply filters
+	filters = from_json_string(rule.filters) if rule.filters else None
+	df = apply_rule_filters(df, filters)
+
+	# Apply aggregations
+	aggregations = from_json_string(rule.aggregations) if rule.aggregations else None
+	df = apply_rule_aggregations(df, aggregations)
+
+	# Apply obfuscation
+	obfuscation = from_json_string(rule.obfuscation) if rule.obfuscation else None
+	df = apply_rule_obfuscation(df, obfuscation)
+
+	# Limit preview rows to 50
+	df_preview = df.head(50)
+	columns = list(df_preview.columns)
+	rows = df_preview.to_dict(orient="records")
+
+	log_audit_event(db, event_type="stream_data_accessed", actor="app", message=f"Data preview accessed for stream {stream_id}")
+
+	return {
+		"streamId": stream.id,
+		"expiresAt": stream.expiresAt,
+		"status": stream.status,
+		"columns": columns,
+		"rows": rows,
+	}

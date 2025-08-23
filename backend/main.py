@@ -3,9 +3,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from db import Base, engine
 from routers import datasets, rules, streams, tokens, audit
+from utils import ensure_data_dir_exists
 
 # Create DB tables (simple create_all for now)
 Base.metadata.create_all(bind=engine)
+# Ensure data dir exists
+ensure_data_dir_exists()
 
 app = FastAPI(title="Hackathon Backend", version="0.1.0")
 
