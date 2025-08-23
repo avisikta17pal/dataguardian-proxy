@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy.types import JSON
 from ..core.db import Base
@@ -24,6 +24,8 @@ class Rule(Base):
     filters = Column(JSON, nullable=True)
     aggregations = Column(JSON, nullable=True)
     obfuscation = Column(JSON, nullable=True)
+    ttl_minutes = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     streams = relationship("Stream", back_populates="rule")
 
@@ -36,15 +38,33 @@ class Stream(Base):
     rule_id = Column(Integer, ForeignKey("rules.id"), nullable=True)
     status = Column(String, default="active", nullable=False)
     expires_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     dataset = relationship("Dataset", back_populates="streams")
     rule = relationship("Rule", back_populates="streams")
+    tokens = relationship("Token", back_populates="stream")
 
 
 class Audit(Base):
     __tablename__ = "audits"
     id = Column(Integer, primary_key=True, index=True)
-    action = Column(String, nullable=False)
+    type = Column(String, nullable=False)
+    actor = Column(String, nullable=True)
+    message = Column(Text, nullable=True)
     stream_id = Column(Integer, ForeignKey("streams.id"), nullable=True)
-    metadata = Column(JSON, nullable=True)
+    meta = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+
+class Token(Base):
+    __tablename__ = "tokens"
+    id = Column(Integer, primary_key=True, index=True)
+    stream_id = Column(Integer, ForeignKey("streams.id"), nullable=False)
+    token = Column(String, unique=True, nullable=False, index=True)
+    scope = Column(JSON, nullable=True)
+    expires_at = Column(DateTime, nullable=True)
+    one_time = Column(Boolean, default=False, nullable=False)
+    revoked = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    stream = relationship("Stream", back_populates="tokens")

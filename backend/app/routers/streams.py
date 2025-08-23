@@ -10,22 +10,70 @@ import io
 from ..core.db import get_db
 from ..core.config import DATA_DIR
 from ..models.models import Stream, Dataset, Rule, Audit
-from ..schemas.schemas import StreamDataPreview
+from ..schemas.schemas import StreamDataPreview, StreamCreate, StreamRead
 from ..services.data_processing import (
     apply_filters,
     apply_aggregations,
     apply_obfuscation,
     select_fields,
 )
+from ..services.tokens import validate_stream_token
 
 router = APIRouter()
 
 
+@router.get("/", response_model=List[StreamRead])
+async def list_streams(db: Session = Depends(get_db)):
+    streams = db.query(Stream).order_by(Stream.created_at.desc()).all()
+    return streams
+
+
+@router.post("/", response_model=StreamRead)
+async def create_stream(payload: StreamCreate, db: Session = Depends(get_db)):
+    dataset = db.query(Dataset).filter(Dataset.id == payload.dataset_id).first()
+    if not dataset:
+        raise HTTPException(status_code=404, detail="Dataset not found")
+    rule = None
+    if payload.rule_id is not None:
+        rule = db.query(Rule).filter(Rule.id == payload.rule_id).first()
+        if not rule:
+            raise HTTPException(status_code=404, detail="Rule not found")
+
+    stream = Stream(
+        name=payload.name,
+        dataset_id=payload.dataset_id,
+        rule_id=payload.rule_id,
+        status=payload.status or "active",
+        expires_at=payload.expires_at,
+        created_at=datetime.utcnow(),
+    )
+    db.add(stream)
+    db.commit()
+    db.refresh(stream)
+
+    # Audit
+    audit = Audit(
+        type="stream_created",
+        actor="citizen",
+        message=f"Stream {stream.id} created",
+        stream_id=stream.id,
+        meta={"datasetId": stream.dataset_id, "ruleId": stream.rule_id},
+        created_at=datetime.utcnow(),
+    )
+    db.add(audit)
+    db.commit()
+
+    return stream
+
+
 @router.get("/{stream_id}/data", response_model=StreamDataPreview)
-async def get_stream_data(stream_id: int, db: Session = Depends(get_db)):
+async def get_stream_data(stream_id: int, token: str = Query(...), db: Session = Depends(get_db)):
     stream: Stream | None = db.query(Stream).filter(Stream.id == stream_id).first()
     if not stream:
         raise HTTPException(status_code=404, detail="Stream not found")
+
+    # Validate token
+    validate_stream_token(db, stream_id=stream_id, token_value=token)
 
     dataset: Dataset | None = stream.dataset
     if not dataset:
@@ -73,12 +121,15 @@ async def get_stream_data(stream_id: int, db: Session = Depends(get_db)):
 
     # Audit logging
     audit = Audit(
-        action="stream_data_accessed",
+        type="stream_accessed",
+        actor="app",
+        message=f"Stream {stream.id} data preview accessed",
         stream_id=stream.id,
-        metadata={
+        meta={
             "rowCount": len(rows),
             "columns": columns,
             "datasetId": dataset.id,
+            "tokenUsed": True,
             "timestamp": datetime.utcnow().isoformat(),
         },
         created_at=datetime.utcnow(),
@@ -93,12 +144,16 @@ async def get_stream_data(stream_id: int, db: Session = Depends(get_db)):
 async def export_stream_data(
     stream_id: int,
     format: str = Query(default="csv", pattern="^(csv|json)$"),
+    token: str = Query(...),
     db: Session = Depends(get_db),
 ):
     # Locate stream and dataset
     stream: Stream | None = db.query(Stream).filter(Stream.id == stream_id).first()
     if not stream:
         raise HTTPException(status_code=404, detail="Stream not found")
+
+    # Validate token
+    validate_stream_token(db, stream_id=stream_id, token_value=token)
 
     dataset: Dataset | None = stream.dataset
     if not dataset:
@@ -127,13 +182,15 @@ async def export_stream_data(
 
     # Audit logging for export
     audit = Audit(
-        action="stream_exported",
+        type="stream_exported",
+        actor="app",
+        message=f"Stream {stream_id} exported as {format}",
         stream_id=stream.id,
-        metadata={
-            "message": f"Stream {stream_id} exported as {format}",
-            "actor": "citizen",
+        meta={
             "datasetId": dataset.id,
             "rowCount": int(df.shape[0]),
+            "format": format,
+            "tokenUsed": True,
             "timestamp": datetime.utcnow().isoformat(),
         },
         created_at=datetime.utcnow(),
