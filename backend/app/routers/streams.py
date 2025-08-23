@@ -17,12 +17,20 @@ from ..services.data_processing import (
     apply_obfuscation,
     select_fields,
 )
+from ..services.tokens import validate_stream_token, TokenValidationError
 
 router = APIRouter()
 
 
 @router.get("/{stream_id}/data", response_model=StreamDataPreview)
-async def get_stream_data(stream_id: int, db: Session = Depends(get_db)):
+async def get_stream_data(stream_id: int, token: str | None = None, db: Session = Depends(get_db)):
+    # Token validation: app actor
+    try:
+        validate_stream_token(db, stream_id, token)
+        actor = "app"
+    except TokenValidationError as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+
     stream: Stream | None = db.query(Stream).filter(Stream.id == stream_id).first()
     if not stream:
         raise HTTPException(status_code=404, detail="Stream not found")
@@ -73,13 +81,14 @@ async def get_stream_data(stream_id: int, db: Session = Depends(get_db)):
 
     # Audit logging
     audit = Audit(
-        action="stream_data_accessed",
+        type="stream_data_accessed",
+        actor=actor,
+        message=f"Stream {stream.id} data preview accessed",
         stream_id=stream.id,
-        metadata={
+        meta={
             "rowCount": len(rows),
             "columns": columns,
             "datasetId": dataset.id,
-            "timestamp": datetime.utcnow().isoformat(),
         },
         created_at=datetime.utcnow(),
     )
@@ -93,8 +102,16 @@ async def get_stream_data(stream_id: int, db: Session = Depends(get_db)):
 async def export_stream_data(
     stream_id: int,
     format: str = Query(default="csv", pattern="^(csv|json)$"),
+    token: str | None = None,
     db: Session = Depends(get_db),
 ):
+    # Token validation: app actor
+    try:
+        validate_stream_token(db, stream_id, token)
+        actor = "app"
+    except TokenValidationError as exc:
+        raise HTTPException(status_code=401, detail=str(exc))
+
     # Locate stream and dataset
     stream: Stream | None = db.query(Stream).filter(Stream.id == stream_id).first()
     if not stream:
@@ -127,14 +144,13 @@ async def export_stream_data(
 
     # Audit logging for export
     audit = Audit(
-        action="stream_exported",
+        type="stream_exported",
+        actor=actor,
+        message=f"Stream {stream_id} exported as {format}",
         stream_id=stream.id,
-        metadata={
-            "message": f"Stream {stream_id} exported as {format}",
-            "actor": "citizen",
+        meta={
             "datasetId": dataset.id,
             "rowCount": int(df.shape[0]),
-            "timestamp": datetime.utcnow().isoformat(),
         },
         created_at=datetime.utcnow(),
     )
