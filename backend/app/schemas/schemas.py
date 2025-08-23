@@ -25,6 +25,7 @@ class RuleCreate(BaseModel):
     filters: Optional[List[Dict[str, Any]]] = None
     aggregations: Optional[List[Dict[str, Any]]] = None
     obfuscation: Optional[Dict[str, Any]] = None
+    ttl_minutes: Optional[int] = None
 
 
 class RuleRead(BaseModel):
@@ -34,6 +35,8 @@ class RuleRead(BaseModel):
     filters: Optional[List[Dict[str, Any]]]
     aggregations: Optional[List[Dict[str, Any]]]
     obfuscation: Optional[Dict[str, Any]]
+    ttl_minutes: Optional[int]
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -54,6 +57,7 @@ class StreamRead(BaseModel):
     rule_id: Optional[int]
     status: str
     expires_at: Optional[datetime]
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -65,3 +69,37 @@ class StreamDataPreview(BaseModel):
     status: str
     columns: List[str]
     rows: List[Dict[str, Any]]
+
+
+class TokenCreate(BaseModel):
+    stream_id: int
+    scope: Optional[List[str]] = None
+    expires_at: Optional[datetime] = None
+    one_time: Optional[bool] = False
+
+
+class TokenRead(BaseModel):
+    id: int
+    stream_id: int
+    token: str
+    scope: Optional[List[str]]
+    expires_at: Optional[datetime]
+    one_time: bool
+    revoked: bool
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class AuditRead(BaseModel):
+    id: int
+    type: str
+    actor: Optional[str]
+    message: Optional[str]
+    created_at: datetime
+    stream_id: Optional[int] = None
+    meta: Optional[Dict[str, Any]] = None
+
+    class Config:
+        from_attributes = True
