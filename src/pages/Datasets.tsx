@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Upload, FileText, Database, Download, Trash2, Eye, Hash } from "lucide-react";
 import { useDatasetStore } from "@/stores";
 import { parseCSV, generateHash } from "@/services/api";
@@ -238,7 +239,8 @@ export default function Datasets() {
                             Schema and metadata information
                           </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                        <ScrollArea className="max-h-[70vh] pr-2">
+                          <div className="space-y-4">
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
                               <Label>Rows</Label>
@@ -297,7 +299,8 @@ export default function Datasets() {
                             </Table>
                             </div>
                           </div>
-                        </div>
+                          </div>
+                        </ScrollArea>
                       </DialogContent>
                     </Dialog>
                     
