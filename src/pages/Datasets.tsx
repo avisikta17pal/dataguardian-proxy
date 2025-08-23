@@ -233,7 +233,7 @@ export default function Datasets() {
                       </DialogTrigger>
                       <DialogContent className="max-w-4xl">
                         <DialogHeader>
-                          <DialogTitle>Dataset Details: {dataset.name}</DialogTitle>
+                          <DialogTitle>Dataset Details: {(selectedDataset ?? dataset).name}</DialogTitle>
                           <DialogDescription>
                             Schema and metadata information
                           </DialogDescription>
@@ -242,21 +242,21 @@ export default function Datasets() {
                           <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
                               <Label>Rows</Label>
-                              <p className="font-mono">{dataset.rows.toLocaleString()}</p>
+                              <p className="font-mono">{(selectedDataset ?? dataset).rows.toLocaleString()}</p>
                             </div>
                             <div>
                               <Label>Columns</Label>
-                              <p className="font-mono">{dataset.schema.length}</p>
+                              <p className="font-mono">{(selectedDataset ?? dataset).schema.length}</p>
                             </div>
                             <div>
                               <Label>Created</Label>
                               <p className="font-mono">
-                                {new Date(dataset.createdAt).toLocaleDateString()}
+                                {new Date((selectedDataset ?? dataset).createdAt).toLocaleDateString()}
                               </p>
                             </div>
                             <div>
                               <Label>SHA-256 Hash</Label>
-                              <p className="font-mono text-xs break-all">{dataset.sha256}</p>
+                              <p className="font-mono text-xs break-all">{(selectedDataset ?? dataset).sha256}</p>
                             </div>
                           </div>
                           
@@ -272,7 +272,7 @@ export default function Datasets() {
                                 </TableRow>
                               </TableHeader>
                               <TableBody>
-                                {dataset.schema.map((column, index) => (
+                                {(selectedDataset ?? dataset).schema?.map((column, index) => (
                                   <TableRow key={index}>
                                     <TableCell className="font-mono">{column.name}</TableCell>
                                     <TableCell>
