@@ -6,6 +6,8 @@ from .core.config import ensure_data_dir
 from .routers import tokens as tokens_router
 from .routers import audit as audit_router
 from .routers import rules as rules_router
+from .services.cleanup import cleanup_expired
+import asyncio
 
 app = FastAPI(title="Synthetic Streams Backend")
 
@@ -28,6 +30,24 @@ app.include_router(audit_router.router, prefix="/audit", tags=["audit"])
 async def on_startup():
     ensure_data_dir()
     Base.metadata.create_all(bind=engine)
+
+    # Background cleanup task
+    async def periodic_cleanup():
+        # simple loop - every 5 minutes
+        while True:
+            try:
+                # run cleanup in a threadpool-safe way
+                from .core.db import SessionLocal
+                db = SessionLocal()
+                try:
+                    cleanup_expired(db)
+                finally:
+                    db.close()
+            except Exception:
+                pass
+            await asyncio.sleep(300)
+
+    asyncio.create_task(periodic_cleanup())
 
 @app.get("/")
 async def root():
