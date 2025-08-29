@@ -124,6 +124,175 @@ uvicorn app.main:app --reload --port 8001 --app-dir app
 7. Cleanup → Call `POST /audit/maintenance/cleanup` (or wait for background task) → show expired streams/tokens no longer accessible
 
 
+## 📋 Detailed User Guide & Testing Walkthrough
+
+### 🚀 **Complete Testing Process (Step-by-Step)**
+
+#### **Step 1: Initial Setup & Login**
+1. **Access Application**: Navigate to `http://localhost:8080`
+2. **Demo Login**: Click "Login" → Enter any email/password (demo mode accepts all credentials)
+3. **Verify Demo Mode**: Check Settings → "Demo Mode" should be enabled (uses localStorage, no backend required)
+
+#### **Step 2: Dataset Management**
+**Purpose**: Upload and inspect your data before applying privacy rules
+
+1. **Navigate**: Go to "Datasets" page
+2. **Upload Options**:
+   - **Sample Data**: Click "Load Sample" → Choose:
+     - `fitness.csv` - Health metrics (steps, heart rate, sleep)
+     - `bank.csv` - Financial transactions 
+     - `dgp_synth_10000.csv` - Large synthetic dataset (10K rows)
+   - **Custom Upload**: Drag & drop your own CSV file
+3. **Data Inspection**: 
+   - **Schema Detection**: View auto-detected column types (string, number, date, boolean)
+   - **PII Detection**: Red badges show detected personal identifiable information
+   - **SHA-256 Hash**: Unique fingerprint for data integrity verification
+   - **Statistics**: Row count, file size, creation timestamp
+
+#### **Step 3: Privacy Rule Creation**
+**Purpose**: Define how data should be transformed to protect privacy while maintaining utility
+
+1. **Navigate**: Go to "Rules" page → Click "Create New Rule"
+2. **Basic Configuration**:
+   ```
+   Rule Name: "Safe Health Data Sharing"
+   Source Dataset: Select your uploaded dataset
+   Description: "Remove PII, add noise to health metrics for research"
+   TTL: 24 hours (rule expiration time)
+   ```
+3. **Field Selection**:
+   - **Include Strategy**: Select only necessary fields for your use case
+   - **PII Handling**: Uncheck sensitive fields like names, emails, addresses
+   - **Example**: For fitness data, include: timestamp, steps, heart_rate, sleep_minutes
+
+4. **Privacy Templates** (Quick Setup):
+   - **Basic Privacy**: Light obfuscation, removes PII (good for general sharing)
+   - **High Security**: Strong anonymization with k-anonymity (sensitive data)
+   - **Analytics Safe**: Balanced privacy/utility for research (recommended)
+
+5. **Advanced Privacy Options**:
+   ```
+   ✅ Drop PII Fields: Automatically removes common identifiers
+   Noise Level: Low (1-5%) | Medium (5-15%) | High (15%+)
+   K-Anonymity: 5 (each record identical to 4+ others)
+   
+   Custom Obfuscation:
+   - Jitter: 5% random noise on numerical fields
+   - Rounding: Round to nearest 10 (steps) or 5 (heart rate)
+   - Bucketing: Group continuous values into ranges
+   - Differential Privacy: Laplace noise (scale: 1.0)
+   - Synthetic Generation: rows=500, shuffle=true
+   ```
+
+#### **Step 4: Data Stream Creation**
+**Purpose**: Create time-limited, purpose-specific access to privacy-transformed data
+
+1. **Navigate**: Go to "Streams" page → Click "Create New Stream"
+2. **Stream Configuration**:
+   ```
+   Stream Name: "Health Research Access"
+   Dataset: Select your uploaded dataset
+   Privacy Rule: Select the rule you created
+   Purpose: "Medical research analysis for diabetes study"
+   Status: Active
+   Expires At: Set to 24 hours from now
+   ```
+3. **Preview Data**: Click "Preview" to see privacy transformations applied
+4. **Verify Transformations**: 
+   - PII fields should be removed
+   - Numerical values should have noise/rounding applied
+   - K-anonymity grouping visible if configured
+
+#### **Step 5: Token Management**
+**Purpose**: Generate secure, revocable access credentials for applications
+
+1. **From Stream**: Click "Generate Token" on your created stream
+2. **Token Configuration**:
+   ```
+   Token Name: "University Research Access"
+   Scope: ["read", "export"] (permissions)
+   Expires: 24 hours (or one-time use)
+   One-time Use: No (allows multiple accesses)
+   ```
+3. **Token Security**: 
+   - Copy the generated token (share this with applications)
+   - Token is URL-safe, cryptographically secure
+   - Can be revoked instantly if needed
+
+#### **Step 6: Data Access & Export**
+**Purpose**: Test how applications would access your privacy-protected data
+
+1. **API Testing** (if backend running):
+   ```bash
+   # Preview data
+   curl "http://localhost:8001/streams/1/data?token=YOUR_TOKEN_HERE"
+   
+   # Export as CSV
+   curl "http://localhost:8001/streams/1/export?format=csv&token=YOUR_TOKEN" -o data.csv
+   
+   # Export as JSON
+   curl "http://localhost:8001/streams/1/export?format=json&token=YOUR_TOKEN"
+   ```
+
+2. **UI Testing**:
+   - Use "Export" button in Streams page
+   - Download privacy-transformed data
+   - Compare with original to verify privacy protections
+
+#### **Step 7: Monitoring & Audit**
+**Purpose**: Track all data access for transparency and compliance
+
+1. **Dashboard Overview**:
+   - Active streams count
+   - Token usage statistics  
+   - Streams expiring soon
+   - Recent audit events
+
+2. **Audit Trail**: Go to "Audit" page
+   - **Event Types**: dataset_created, stream_accessed, token_revoked, etc.
+   - **Actor Tracking**: citizen, app, admin roles
+   - **Metadata**: IP addresses, timestamps, data volumes
+   - **Severity Levels**: info, warning, error
+
+3. **Consent Receipts**: 
+   - Click "Generate Receipt" for any stream
+   - **HTML Format**: Web-viewable compliance document
+   - **PDF Format**: Downloadable legal record
+   - **Contents**: Data shared, transformations applied, access log, expiry dates
+
+#### **Step 8: Security Testing**
+**Purpose**: Verify privacy controls and access restrictions work correctly
+
+1. **Token Revocation**:
+   - Go to "Tokens" page → Click "Revoke" on a token
+   - Try accessing data with revoked token → Should fail with 401 error
+   
+2. **Stream Expiration**:
+   - Wait for stream to expire OR manually expire it
+   - Attempt data access → Should fail with expiration error
+   
+3. **Privacy Verification**:
+   - Export data and verify PII removal
+   - Check numerical fields have noise/rounding applied
+   - Confirm k-anonymity grouping if enabled
+
+### 🎯 **Privacy Concepts Explained**
+
+**PII (Personal Identifiable Information)**: Data that can identify individuals (names, emails, SSNs, addresses)
+
+**Jitter**: Random noise added to numerical values (±5% makes 100 become 95-105)
+
+**Rounding**: Reduces precision (12.34 → 12, steps: 1247 → 1250)
+
+**K-Anonymity**: Each record is identical to k-1 others on selected attributes (prevents re-identification)
+
+**Differential Privacy**: Mathematically proven privacy via calibrated noise addition
+
+**Synthetic Data**: Generated data that preserves statistical properties but breaks individual linkage
+
+**Bucketing**: Groups continuous values into ranges (age: 25 → "20-30", income: $45K → "40-50K")
+
+
 ## 📡 API Quick Reference
 - `POST /datasets/`
 - `POST /rules/`, `GET /rules/`
